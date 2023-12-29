@@ -16,12 +16,21 @@ import java.util.List;
 public class Room {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
-    private Integer managerId;
+    private Long id;
+    private Long managerId;
     private String name;
     private String description;
     private Integer number_of_trainers;
-    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL)
+//    @ManyToMany(mappedBy = "room", cascade = CascadeType.ALL)
+//    @JoinColumn(name = "workout_name")
+//    private List<Workout> workouts;
+
+    @ManyToMany
+    @JoinTable(
+            name = "room_workout",
+            joinColumns = @JoinColumn(name = "room_id"),
+            inverseJoinColumns = @JoinColumn(name = "workout_id")
+    )
     private List<Workout> workouts;
 
 }

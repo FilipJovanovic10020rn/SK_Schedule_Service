@@ -13,13 +13,15 @@ public class Workout {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
     private String name;
     private int price;
     private Type type;
 
-    @ManyToOne
-    @JoinColumn(name = "room_id")
-    private Room room;
+//    @ManyToMany
+//    @JoinColumn(name = "room_id")
+//    private Room room;
 
+    @ManyToMany(mappedBy = "workouts")
+    private List<Room> rooms;
 }
