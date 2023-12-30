@@ -1,5 +1,6 @@
 package com.example.scheduleservice.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.sun.istack.NotNull;
 import lombok.Data;
 
@@ -24,6 +25,7 @@ public class Room {
 
 
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<Workout> workouts;
 
 }

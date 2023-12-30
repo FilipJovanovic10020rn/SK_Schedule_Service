@@ -1,13 +1,10 @@
 package com.example.scheduleservice.controllers;
 
-import com.example.scheduleservice.model.Room;
 import com.example.scheduleservice.model.Type;
 import com.example.scheduleservice.model.Workout;
-import com.example.scheduleservice.requests.CreateRoomRequest;
 import com.example.scheduleservice.requests.CreateWorkoutRequest;
 import com.example.scheduleservice.requests.UpdateWorkoutRequest;
 import com.example.scheduleservice.service.WorkoutService;
-import org.hibernate.jdbc.Work;
 import org.springframework.beans.BeanUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -16,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 @CrossOrigin
@@ -74,4 +72,18 @@ public class WorkoutController {
             return new ResponseEntity<>("Failed to delete workout", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+    @GetMapping(value = "/get/{type}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public List<Workout> getWorkoutsByType(@PathVariable("type") Type type){
+        return this.workoutService.findAllByType(type);
+
+    }
+
+    @GetMapping(value = "/getSlobodni", produces = MediaType.APPLICATION_JSON_VALUE)
+    public List<Workout> getFreeWorkouts(){
+        return this.workoutService.findAllFree();
+
+    }
+
+
 }

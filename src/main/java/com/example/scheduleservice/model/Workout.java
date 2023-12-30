@@ -21,8 +21,8 @@ public class Workout {
     private Date date;
     private Integer duration;
     private Type type;
-    private Integer capacity;
-    private Integer booked;
+    private int capacity;
+    private int booked;
 
 
     @ManyToOne

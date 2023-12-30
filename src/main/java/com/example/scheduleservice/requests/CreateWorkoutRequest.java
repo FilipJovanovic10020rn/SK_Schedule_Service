@@ -15,7 +15,7 @@ public class CreateWorkoutRequest {
     private String date;
     private Integer duration;
     private Type type;
-    private Integer capacity;
+    private int capacity;
     private Room room;
 
     public CreateWorkoutRequest(String name, int price, String date, int duration, Type type, int capacity, Room room) {

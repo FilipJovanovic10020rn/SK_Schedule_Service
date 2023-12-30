@@ -14,9 +14,9 @@ public class UpdateWorkoutRequest {
     private String date;
     private Integer duration;
     private Type type;
-    private Integer capacity;
+    private int capacity;
     private Room room;
-    private Integer booked;
+    private int booked;
 
     public UpdateWorkoutRequest(String name, int price, String date, int duration, Type type, int capacity, Room room, int booked) {
         this.name = name;
