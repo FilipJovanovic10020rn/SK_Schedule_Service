@@ -23,10 +23,10 @@ public class RoomService {
         return this.roomRepository.save(room);
     }
 
-//    public void delete(Long id){
-//        Optional<Room> room = this.roomRepository.findById(id);
-//        if(room!=null){
-//            this.roomRepository.delete(room);
-//        }
-//    }
+    public void delete(Long id){
+        Optional<Room> room = this.roomRepository.findById(id);
+        if(room!=null){
+            this.roomRepository.deleteById(id);
+        }
+    }
 }

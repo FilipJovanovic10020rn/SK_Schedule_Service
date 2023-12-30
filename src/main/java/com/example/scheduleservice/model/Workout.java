@@ -3,25 +3,29 @@ import lombok.Data;
 
 
 import javax.persistence.*;
+import java.sql.Time;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Data
 @Entity
-@Table(name="workout")
+@Table(name="workouts")
 public class Workout {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String name;
-    private int price;
+    private Integer price;
+    private Date date;
+    private Integer duration;
     private Type type;
+    private Integer capacity;
+    private Integer booked;
 
-//    @ManyToMany
-//    @JoinColumn(name = "room_id")
-//    private Room room;
 
-    @ManyToMany(mappedBy = "workouts")
-    private List<Room> rooms;
+    @ManyToOne
+    @JoinColumn(name = "room_id", nullable = false)
+    private Room room;
 }

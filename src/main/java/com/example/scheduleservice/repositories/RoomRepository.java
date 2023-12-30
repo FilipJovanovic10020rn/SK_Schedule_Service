@@ -12,7 +12,6 @@ import java.util.Optional;
 public interface RoomRepository extends JpaRepository<Room, Long> {
     List<Room> findRoomsByManagerId(Long id);
 
-//    void delete(Optional<Room> room);
-
-
+    @Override
+    void deleteById(Long id);
 }

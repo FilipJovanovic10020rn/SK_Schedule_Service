@@ -10,4 +10,6 @@ public class ScheduleServiceApplication {
         SpringApplication.run(ScheduleServiceApplication.class, args);
     }
 
+
+
 }

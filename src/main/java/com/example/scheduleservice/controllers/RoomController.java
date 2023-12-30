@@ -23,31 +23,40 @@ public class RoomController {
     }
     @GetMapping(value = "/get/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public List<Room> getAllRooms(@PathVariable("id") Long id){
-        try {
+//        try {
             return this.roomService.findAll(id);
-        }catch (Exception e){
-            e.printStackTrace();
-            return (List<Room>) new ResponseEntity<>("Internal Server Error", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-
+//        }catch (Exception e){
+//            e.printStackTrace();
+//            return (List<Room>) new ResponseEntity<>("Internal Server Error", HttpStatus.INTERNAL_SERVER_ERROR);
+//        }
     }
 
     @PostMapping(value = "/new", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> createRoom(@RequestBody CreateRoomRequest requestRoom){
 
+        System.out.println();
         try {
-
-
             Room room = new Room();
             room.setName(requestRoom.getName());
             room.setDescription((requestRoom.getDescription()));
             room.setManagerId(requestRoom.getManagerId());
             room.setNumber_of_trainers(requestRoom.getNumber_of_trainers());
-            room.setWorkouts(requestRoom.getWorkouts());
             return new ResponseEntity<>(roomService.save(room), HttpStatus.OK);
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>("Internal Server Error", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<String> deleteRoom(@PathVariable Long id) {
+        try {
+            roomService.delete(id);
+            return new ResponseEntity<>("Room deleted successfully", HttpStatus.OK);
+        } catch (Exception e) {
+            e.printStackTrace(); // Log the exception or handle it as needed
+            return new ResponseEntity<>("Failed to delete room", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
 }

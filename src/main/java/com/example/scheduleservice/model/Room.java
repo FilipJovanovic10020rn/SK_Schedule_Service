@@ -12,7 +12,7 @@ import java.util.List;
 
 @Data
 @Entity
-@Table(name="room")
+@Table(name="rooms")
 public class Room {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -21,16 +21,9 @@ public class Room {
     private String name;
     private String description;
     private Integer number_of_trainers;
-//    @ManyToMany(mappedBy = "room", cascade = CascadeType.ALL)
-//    @JoinColumn(name = "workout_name")
-//    private List<Workout> workouts;
 
-    @ManyToMany
-    @JoinTable(
-            name = "room_workout",
-            joinColumns = @JoinColumn(name = "room_id"),
-            inverseJoinColumns = @JoinColumn(name = "workout_id")
-    )
+
+    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Workout> workouts;
 
 }
