@@ -1,7 +1,9 @@
 package com.example.scheduleservice.controllers;
 
+import com.example.scheduleservice.messagebroker.MessageSender;
 import com.example.scheduleservice.model.Type;
 import com.example.scheduleservice.model.Workout;
+import com.example.scheduleservice.requests.ClientScheduleRequest;
 import com.example.scheduleservice.requests.CreateWorkoutRequest;
 import com.example.scheduleservice.requests.UpdateWorkoutRequest;
 import com.example.scheduleservice.service.WorkoutService;
@@ -12,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -22,9 +25,13 @@ import java.util.Optional;
 public class WorkoutController {
 
     private final WorkoutService workoutService;
+    private final MessageSender messageSender;
+
+
     SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-    public WorkoutController(WorkoutService workoutService) {
+    public WorkoutController(WorkoutService workoutService, MessageSender messageSender) {
         this.workoutService = workoutService;
+        this.messageSender = messageSender;
     }
 
     @PostMapping(value = "/new", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -44,7 +51,7 @@ public class WorkoutController {
                 workout.setCapacity(requestWorkout.getCapacity());
             workout.setDuration(requestWorkout.getDuration());
             workout.setRoom(requestWorkout.getRoom());
-            workout.setBooked(0);
+            workout.setBooked(new ArrayList<>());
             return new ResponseEntity<>(workoutService.save(workout), HttpStatus.OK);
         } catch (Exception e) {
             e.printStackTrace();
@@ -61,6 +68,53 @@ public class WorkoutController {
             BeanUtils.copyProperties(updateWorkout, workout.get(), "id");
             return new ResponseEntity<>(workoutService.save(workout.get()), HttpStatus.OK);
     }
+
+    @PutMapping(value = "/addClient",produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> scheduleAddClient(@RequestBody ClientScheduleRequest clientScheduleRequest){
+        Optional<Workout> workout= (workoutService.findbyID(clientScheduleRequest.getWorkoutID()));
+
+        List<Long> booked = workout.get().getBooked();
+        if (booked == null) {
+            booked = new ArrayList<>();
+        }
+
+
+        if(booked.contains(clientScheduleRequest.getClientID())){
+            throw new RuntimeException("Korisnik vec dodat");
+        }
+        if(booked.size()>=workout.get().getCapacity()) {
+            throw new RuntimeException("Zazueta sva mesta");
+        }
+
+        booked.add(clientScheduleRequest.getClientID());
+
+
+        workout.get().setBooked(booked);
+
+        //Povecaj count za jedan
+        messageSender.sendMessage("user-service", clientScheduleRequest.getClientID().toString());
+
+
+        return new ResponseEntity<>(workoutService.save(workout.get()), HttpStatus.OK);
+    }
+
+
+    @PutMapping(value = "/removeClient",produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> scheduleDeleteClient(@RequestBody ClientScheduleRequest clientScheduleRequest){
+        Optional<Workout> workout= (workoutService.findbyID(clientScheduleRequest.getWorkoutID()));
+
+        List<Long> booked = workout.get().getBooked();
+        if (booked == null) {
+            booked = new ArrayList<>();
+        }
+
+        booked.remove(clientScheduleRequest.getClientID());
+
+        workout.get().setBooked(booked);
+
+        return new ResponseEntity<>(workoutService.save(workout.get()), HttpStatus.OK);
+    }
+
 
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<String> deleteWorkout(@PathVariable Long id) {

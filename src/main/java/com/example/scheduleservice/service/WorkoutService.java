@@ -1,11 +1,11 @@
 package com.example.scheduleservice.service;
 
-import com.example.scheduleservice.model.Room;
 import com.example.scheduleservice.model.Type;
 import com.example.scheduleservice.model.Workout;
 import com.example.scheduleservice.repositories.WorkoutRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,7 +39,20 @@ public class WorkoutService {
     }
 
     public List<Workout> findAllFree(){
-        return this.workoutRepository.findAllByBookedLessThanCapacity();
+        return this.workoutRepository.findAllByClientsLessThanCapacity();
     }
 
+    public List<Workout> findUpcomingWorkouts() {
+        Date currentDate = new Date();
+        return workoutRepository.findAllByDateAfter(currentDate);
+    }
+
+    public int ClientOccurrences(Long id){
+        return workoutRepository.countClientOccurrences(id);
+    }
+
+    public void delete(Workout workout ){
+            this.workoutRepository.deleteById(workout.getId());
+            this.workoutRepository.deleteWorkoutClientsByWorkoutId(workout.getId());
+    }
 }

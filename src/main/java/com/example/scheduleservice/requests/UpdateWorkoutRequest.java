@@ -5,6 +5,8 @@ import com.example.scheduleservice.model.Type;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 @Setter
 @Getter
 public class UpdateWorkoutRequest {
@@ -16,9 +18,8 @@ public class UpdateWorkoutRequest {
     private Type type;
     private int capacity;
     private Room room;
-    private int booked;
 
-    public UpdateWorkoutRequest(String name, int price, String date, int duration, Type type, int capacity, Room room, int booked) {
+    public UpdateWorkoutRequest(String name, int price, String date, int duration, Type type, int capacity, Room room) {
         this.name = name;
         this.price = price;
         this.date = date;
@@ -26,6 +27,5 @@ public class UpdateWorkoutRequest {
         this.type = type;
         this.capacity = capacity;
         this.room = room;
-        this.booked = booked;
     }
 }
