@@ -3,11 +3,13 @@ package com.example.scheduleservice.controllers;
 import com.example.scheduleservice.messagebroker.MessageSender;
 import com.example.scheduleservice.model.IsBookedDTO;
 import com.example.scheduleservice.model.Type;
+import com.example.scheduleservice.model.UserType;
 import com.example.scheduleservice.model.Workout;
 import com.example.scheduleservice.requests.ClientScheduleRequest;
 import com.example.scheduleservice.requests.CreateWorkoutRequest;
 import com.example.scheduleservice.requests.FilterRequest;
 import com.example.scheduleservice.requests.UpdateWorkoutRequest;
+import com.example.scheduleservice.security.CheckSecurity;
 import com.example.scheduleservice.service.WorkoutService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.http.HttpStatus;
@@ -37,7 +39,9 @@ public class WorkoutController {
     }
 
     @PostMapping(value = "/new", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> createWorkout(@RequestBody CreateWorkoutRequest requestWorkout){
+    @CheckSecurity(roles = {UserType.ADMIN,UserType.MANAGER})
+    public ResponseEntity<?> createWorkout(@RequestHeader("Authorization") String authorization,
+                                           @RequestBody CreateWorkoutRequest requestWorkout){
 
         try {
             Workout workout = new Workout();
@@ -60,9 +64,10 @@ public class WorkoutController {
             return new ResponseEntity<>("Internal Server Error", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
     @PutMapping(value = "/update/{id}",produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> updatebyID(@PathVariable("id")Long id, @RequestBody UpdateWorkoutRequest updateWorkout){
+    @CheckSecurity(roles = {UserType.ADMIN,UserType.MANAGER})
+    public ResponseEntity<?> updatebyID(@RequestHeader("Authorization") String authorization,
+                                        @PathVariable("id")Long id, @RequestBody UpdateWorkoutRequest updateWorkout){
         Optional<Workout> workout= (workoutService.findbyID(id));
             if (workout == null) {
             return ResponseEntity.notFound().build();
@@ -70,9 +75,10 @@ public class WorkoutController {
             BeanUtils.copyProperties(updateWorkout, workout.get(), "id");
             return new ResponseEntity<>(workoutService.save(workout.get()), HttpStatus.OK);
     }
-
     @PutMapping(value = "/schedule",produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> scheduleAddClient(@RequestBody ClientScheduleRequest clientScheduleRequest){
+    @CheckSecurity(roles = {UserType.CLIENT})
+    public ResponseEntity<?> scheduleAddClient(@RequestHeader("Authorization") String authorization,
+                                               @RequestBody ClientScheduleRequest clientScheduleRequest){
         Optional<Workout> workout= (workoutService.findbyID(clientScheduleRequest.getWorkoutID()));
 
         List<Long> booked = workout.get().getBooked();
@@ -100,9 +106,10 @@ public class WorkoutController {
         return new ResponseEntity<>(workoutService.save(workout.get()), HttpStatus.OK);
     }
 
-
     @PutMapping(value = "/cancel",produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> scheduleDeleteClient(@RequestBody ClientScheduleRequest clientScheduleRequest){
+    @CheckSecurity(roles = {UserType.CLIENT})
+    public ResponseEntity<?> scheduleDeleteClient(@RequestHeader("Authorization") String authorization,
+                                                  @RequestBody ClientScheduleRequest clientScheduleRequest){
         Optional<Workout> workout= (workoutService.findbyID(clientScheduleRequest.getWorkoutID()));
 
         List<Long> booked = workout.get().getBooked();
@@ -117,9 +124,9 @@ public class WorkoutController {
         return new ResponseEntity<>(workoutService.save(workout.get()), HttpStatus.OK);
     }
 
-
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<String> deleteWorkout(@PathVariable Long id) {
+    @CheckSecurity(roles = {UserType.ADMIN,UserType.MANAGER})
+    public ResponseEntity<String> deleteWorkout(@RequestHeader("Authorization") String authorization,@PathVariable Long id) {
         try {
             workoutService.delete(id);
             return new ResponseEntity<>("Workout deleted successfully", HttpStatus.OK);
@@ -128,34 +135,35 @@ public class WorkoutController {
             return new ResponseEntity<>("Failed to delete workout", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
     @GetMapping(value = "/getType/{type}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<Workout> getWorkoutsByType(@PathVariable("type") Type type){
+    @CheckSecurity(roles = {UserType.ADMIN,UserType.MANAGER, UserType.CLIENT})
+    public List<Workout> getWorkoutsByType(@RequestHeader("Authorization") String authorization, @PathVariable("type") Type type){
         return this.workoutService.findAllByType(type);
 
     }
-
     @GetMapping(value = "/get", produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<Workout> getAllWorkouts(){
+    @CheckSecurity(roles = {UserType.ADMIN,UserType.MANAGER,UserType.CLIENT})
+    public List<Workout> getAllWorkouts(@RequestHeader("Authorization") String authorization){
         return this.workoutService.findAll();
 
     }
 
     @GetMapping(value = "/getSlobodni", produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<Workout> getFreeWorkouts(){
+    @CheckSecurity(roles = {UserType.ADMIN,UserType.MANAGER,UserType.CLIENT})
+    public List<Workout> getFreeWorkouts(@RequestHeader("Authorization") String authorization){
         return this.workoutService.findAllFree();
 
     }
-
     @GetMapping(value = "/getSlobodan/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public boolean getIsFree(@PathVariable Long id){
+    @CheckSecurity(roles = {UserType.ADMIN,UserType.MANAGER,UserType.CLIENT})
+    public boolean getIsFree(@RequestHeader("Authorization") String authorization,@PathVariable Long id){
         return this.workoutService.findIsFree(id);
     }
 
 
-
     @PostMapping(value = "/getfilter", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
-    public List<Workout> getFilterWorkouts(@RequestBody FilterRequest filterRequest){
+    @CheckSecurity(roles = {UserType.ADMIN,UserType.MANAGER, UserType.CLIENT})
+    public List<Workout> getFilterWorkouts(@RequestHeader("Authorization") String authorization,@RequestBody FilterRequest filterRequest){
 
         Type type = null;
         try {
@@ -177,9 +185,9 @@ public class WorkoutController {
         return this.workoutService.findAll();
 
     }
-
     @GetMapping(value = "/get/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<Workout> getByClientId(@PathVariable("id") Long id){
+    @CheckSecurity(roles = {UserType.ADMIN,UserType.MANAGER, UserType.CLIENT})
+    public List<Workout> getByClientId(@RequestHeader("Authorization") String authorization,@PathVariable("id") Long id){
         return this.workoutService.findAllByClientId(id);
 
     }

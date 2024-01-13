@@ -1,7 +1,9 @@
 package com.example.scheduleservice.controllers;
 
 import com.example.scheduleservice.model.Room;
+import com.example.scheduleservice.model.UserType;
 import com.example.scheduleservice.requests.CreateRoomRequest;
+import com.example.scheduleservice.security.CheckSecurity;
 import com.example.scheduleservice.service.RoomService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -21,8 +23,21 @@ public class RoomController {
     public RoomController(RoomService roomService) {
         this.roomService = roomService;
     }
+
+/*  // todo ovo ti je autorization kako da splitujes i da dobijes id i roles
+//        String[] token = authorization.split(" ");
+//        System.out.println(token[1]);
+//        Claims claims = tokenService.parseToken(token[1]);
+//        Long idFromToken = claims.get("id", Long.class);
+//        UserType userTypeFromToken = UserType.fromString(claims.get("role", String.class));
+//        System.out.println(idFromToken);
+//        System.out.println(userTypeFromToken);
+ */
+
+
     @GetMapping(value = "/get/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<Room> getAllRooms(@PathVariable("id") Long id){
+    @CheckSecurity(roles = {UserType.ADMIN,UserType.MANAGER})
+    public List<Room> getAllRooms(@RequestHeader("Authorization") String authorization, @PathVariable("id") Long id){
 //        try {
             return this.roomService.findAll(id);
 //        }catch (Exception e){
@@ -32,7 +47,8 @@ public class RoomController {
     }
 
     @PostMapping(value = "/new", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> createRoom(@RequestBody CreateRoomRequest requestRoom){
+    @CheckSecurity(roles = {UserType.ADMIN,UserType.MANAGER})
+    public ResponseEntity<?> createRoom(@RequestHeader("Authorization") String authorization, @RequestBody CreateRoomRequest requestRoom){
 
         System.out.println();
         try {
@@ -49,7 +65,8 @@ public class RoomController {
     }
 
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<String> deleteRoom(@PathVariable Long id) {
+    @CheckSecurity(roles = {UserType.ADMIN,UserType.MANAGER})
+    public ResponseEntity<String> deleteRoom(@RequestHeader("Authorization") String authorization, @PathVariable Long id) {
         try {
             roomService.delete(id);
             return new ResponseEntity<>("Room deleted successfully", HttpStatus.OK);
