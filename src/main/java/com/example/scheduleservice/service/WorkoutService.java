@@ -1,5 +1,6 @@
 package com.example.scheduleservice.service;
 
+import com.example.scheduleservice.model.IsBookedDTO;
 import com.example.scheduleservice.model.Type;
 import com.example.scheduleservice.model.Workout;
 import com.example.scheduleservice.repositories.WorkoutRepository;
@@ -31,6 +32,39 @@ public class WorkoutService {
         return this.workoutRepository.findWorkoutByType(type);
     }
 
+    public List<Workout> findAvailableByType(Type type){
+        return this.workoutRepository.findAvailableWorkoutsByType(type);
+    }
+
+    public boolean findIsFree(Long workoutId) {
+
+//        Boolean result = workoutRepository.isFullyBooked(workoutId);
+//        System.out.println(result);
+//        IsBookedDTO bookedDTO = null;
+//        if(result != null && result){
+//            bookedDTO = new IsBookedDTO(result);
+//            return bookedDTO;
+//        }
+//        else
+//            throw new RuntimeException("GRESKAAAAAAAAAAAAAA");
+
+        Boolean result = workoutRepository.isFullyBooked(workoutId);
+        return result != null && result;
+    }
+
+    public List<Workout> findFilter(Type type){
+        return this.workoutRepository.findWorkoutByType(type);
+    }
+
+    public List<Workout> findAllByClientId(Long id){
+        return this.workoutRepository.findWorkoutsByClientId(id);
+    }
+
+
+    public List<Workout> findAll(){
+        return this.workoutRepository.findAll();
+    }
+
     public void delete(Long id){
         Optional<Workout> workout = this.workoutRepository.findById(id);
         if(workout!=null){
@@ -55,4 +89,6 @@ public class WorkoutService {
             this.workoutRepository.deleteById(workout.getId());
             this.workoutRepository.deleteWorkoutClientsByWorkoutId(workout.getId());
     }
+
+
 }

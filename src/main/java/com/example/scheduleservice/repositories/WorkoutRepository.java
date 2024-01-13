@@ -17,6 +17,15 @@ public interface WorkoutRepository extends JpaRepository<Workout, Long> {
     void deleteById(Long id);
     List<Workout> findWorkoutByType(Type type);
 
+    @Query("SELECT CASE WHEN SIZE(w.booked) >= w.capacity THEN true ELSE false END FROM Workout w WHERE w.id = :workoutId")
+    Boolean isFullyBooked(@Param("workoutId") Long workoutId);
+
+    @Query("SELECT w FROM Workout w WHERE w.type = :type AND SIZE(w.booked) < w.capacity")
+    List<Workout> findAvailableWorkoutsByType(@Param("type") Type type);
+
+    @Query("SELECT w FROM Workout w JOIN w.booked wc WHERE wc = :clientId")
+    List<Workout> findWorkoutsByClientId(@Param("clientId") Long clientId);
+
     @Query("SELECT w FROM Workout w WHERE SIZE(w.booked) < w.capacity")
     List<Workout> findAllByClientsLessThanCapacity();
 

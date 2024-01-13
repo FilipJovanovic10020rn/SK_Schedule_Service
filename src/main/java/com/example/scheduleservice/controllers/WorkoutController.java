@@ -1,10 +1,12 @@
 package com.example.scheduleservice.controllers;
 
 import com.example.scheduleservice.messagebroker.MessageSender;
+import com.example.scheduleservice.model.IsBookedDTO;
 import com.example.scheduleservice.model.Type;
 import com.example.scheduleservice.model.Workout;
 import com.example.scheduleservice.requests.ClientScheduleRequest;
 import com.example.scheduleservice.requests.CreateWorkoutRequest;
+import com.example.scheduleservice.requests.FilterRequest;
 import com.example.scheduleservice.requests.UpdateWorkoutRequest;
 import com.example.scheduleservice.service.WorkoutService;
 import org.springframework.beans.BeanUtils;
@@ -69,7 +71,7 @@ public class WorkoutController {
             return new ResponseEntity<>(workoutService.save(workout.get()), HttpStatus.OK);
     }
 
-    @PutMapping(value = "/addClient",produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PutMapping(value = "/schedule",produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> scheduleAddClient(@RequestBody ClientScheduleRequest clientScheduleRequest){
         Optional<Workout> workout= (workoutService.findbyID(clientScheduleRequest.getWorkoutID()));
 
@@ -99,7 +101,7 @@ public class WorkoutController {
     }
 
 
-    @PutMapping(value = "/removeClient",produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PutMapping(value = "/cancel",produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> scheduleDeleteClient(@RequestBody ClientScheduleRequest clientScheduleRequest){
         Optional<Workout> workout= (workoutService.findbyID(clientScheduleRequest.getWorkoutID()));
 
@@ -127,15 +129,58 @@ public class WorkoutController {
         }
     }
 
-    @GetMapping(value = "/get/{type}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/getType/{type}", produces = MediaType.APPLICATION_JSON_VALUE)
     public List<Workout> getWorkoutsByType(@PathVariable("type") Type type){
         return this.workoutService.findAllByType(type);
+
+    }
+
+    @GetMapping(value = "/get", produces = MediaType.APPLICATION_JSON_VALUE)
+    public List<Workout> getAllWorkouts(){
+        return this.workoutService.findAll();
 
     }
 
     @GetMapping(value = "/getSlobodni", produces = MediaType.APPLICATION_JSON_VALUE)
     public List<Workout> getFreeWorkouts(){
         return this.workoutService.findAllFree();
+
+    }
+
+    @GetMapping(value = "/getSlobodan/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public boolean getIsFree(@PathVariable Long id){
+        return this.workoutService.findIsFree(id);
+    }
+
+
+
+    @PostMapping(value = "/getfilter", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
+    public List<Workout> getFilterWorkouts(@RequestBody FilterRequest filterRequest){
+
+        Type type = null;
+        try {
+            type = Type.valueOf(filterRequest.getType());
+            System.out.println("Enum instance: " + type);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Invalid enum value: " + filterRequest.getType());
+        }
+
+        if(!filterRequest.getType().equals("ALL") && filterRequest.getBooked().equals("ALL"))
+            return this.workoutService.findAllByType(type);
+
+        if(filterRequest.getType().equals("ALL") && !filterRequest.getBooked().equals("ALL"))
+            return this.workoutService.findAllFree();
+
+        if(!filterRequest.getType().equals("ALL") && !filterRequest.getBooked().equals("ALL"))
+            return this.workoutService.findAvailableByType(type);
+
+        return this.workoutService.findAll();
+
+    }
+
+    @GetMapping(value = "/get/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public List<Workout> getByClientId(@PathVariable("id") Long id){
+        return this.workoutService.findAllByClientId(id);
 
     }
 
