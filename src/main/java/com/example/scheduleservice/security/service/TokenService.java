@@ -7,15 +7,19 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.util.Base64;
 
 @Service
 public class TokenService {
 
+    // kljuc se salje sa drugih servisa
+    private SecretKey jwtSecretKey = null ;
 
-    // Postavite svoj zajednički tajni ključ ovdje
-    private final String sharedSecretKey = "tokenKey";
-    private final SecretKey jwtSecretKey = Keys.hmacShaKeyFor(sharedSecretKey.getBytes());
-//    private SecretKey jwtSecretKey = Keys.secretKeyFor(SignatureAlgorithm.HS512);
+    public TokenService() {
+        // Your original shared secret key
+
+    }
 
     public Claims parseToken(String jwt) {
         Claims claims;
@@ -29,4 +33,18 @@ public class TokenService {
         }
         return claims;
     }
+
+    public void setJwtSecretKey(String encodedKey) {
+        this.jwtSecretKey = reconstructSecretKey(encodedKey);
+//        this.jwtSecretKey = jwtSecretKey;
+    }
+
+    private static SecretKey reconstructSecretKey(String encodedKey) {
+        // Dekodirajte base64 string u bajtni niz
+        byte[] keyBytes = Base64.getDecoder().decode(encodedKey);
+
+        // Ponovno konstruirajte SecretKey iz bajtnog niza
+        return new SecretKeySpec(keyBytes, "HmacSHA256");
+    }
+
 }
