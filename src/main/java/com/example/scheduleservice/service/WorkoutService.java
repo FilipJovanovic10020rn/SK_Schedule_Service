@@ -1,6 +1,5 @@
 package com.example.scheduleservice.service;
 
-import com.example.scheduleservice.model.IsBookedDTO;
 import com.example.scheduleservice.model.Type;
 import com.example.scheduleservice.model.Workout;
 import com.example.scheduleservice.repositories.WorkoutRepository;

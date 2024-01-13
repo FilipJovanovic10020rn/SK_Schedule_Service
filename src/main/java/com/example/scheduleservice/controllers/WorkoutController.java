@@ -1,7 +1,6 @@
 package com.example.scheduleservice.controllers;
 
 import com.example.scheduleservice.messagebroker.MessageSender;
-import com.example.scheduleservice.model.IsBookedDTO;
 import com.example.scheduleservice.model.Type;
 import com.example.scheduleservice.model.UserType;
 import com.example.scheduleservice.model.Workout;

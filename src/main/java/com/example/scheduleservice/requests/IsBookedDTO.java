@@ -1,4 +1,4 @@
-package com.example.scheduleservice.model;
+package com.example.scheduleservice.requests;
 
 import lombok.Getter;
 import lombok.Setter;
