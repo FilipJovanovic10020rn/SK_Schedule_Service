@@ -4,17 +4,23 @@ import com.example.scheduleservice.messagebroker.MessageSender;
 import com.example.scheduleservice.model.Type;
 import com.example.scheduleservice.model.UserType;
 import com.example.scheduleservice.model.Workout;
-import com.example.scheduleservice.requests.ClientScheduleRequest;
-import com.example.scheduleservice.requests.CreateWorkoutRequest;
-import com.example.scheduleservice.requests.FilterRequest;
-import com.example.scheduleservice.requests.UpdateWorkoutRequest;
+import com.example.scheduleservice.requests.*;
 import com.example.scheduleservice.security.CheckSecurity;
+import com.example.scheduleservice.security.service.TokenService;
 import com.example.scheduleservice.service.WorkoutService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import io.jsonwebtoken.Claims;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.EnableRetry;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -22,6 +28,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+@EnableRetry
 @CrossOrigin
 @RestController
 @RequestMapping("/api/workouts")
@@ -30,11 +37,18 @@ public class WorkoutController {
     private final WorkoutService workoutService;
     private final MessageSender messageSender;
 
+    private final TokenService tokenService;
+
+    private final RestTemplate restTemplate;
+
 
     SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-    public WorkoutController(WorkoutService workoutService, MessageSender messageSender) {
+
+    public WorkoutController(WorkoutService workoutService, MessageSender messageSender, TokenService tokenService, RestTemplate restTemplate) {
         this.workoutService = workoutService;
         this.messageSender = messageSender;
+        this.tokenService = tokenService;
+        this.restTemplate = restTemplate;
     }
 
     @PostMapping(value = "/new", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -77,7 +91,7 @@ public class WorkoutController {
     @PutMapping(value = "/schedule",produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
     @CheckSecurity(roles = {UserType.CLIENT})
     public ResponseEntity<?> scheduleAddClient(@RequestHeader("Authorization") String authorization,
-                                               @RequestBody ClientScheduleRequest clientScheduleRequest){
+                                               @RequestBody ClientScheduleRequest clientScheduleRequest) throws JsonProcessingException {
         Optional<Workout> workout= (workoutService.findbyID(clientScheduleRequest.getWorkoutID()));
 
         List<Long> booked = workout.get().getBooked();
@@ -85,42 +99,87 @@ public class WorkoutController {
             booked = new ArrayList<>();
         }
 
+        String[] token = authorization.split(" ");
+        System.out.println(token[1]);
+        Claims claims = tokenService.parseToken(token[1]);
+        Long idFromToken = claims.get("id", Long.class);
+        UserType userTypeFromToken = UserType.fromString(claims.get("role", String.class));
+        System.out.println(idFromToken);
+        System.out.println(userTypeFromToken);
 
-        if(booked.contains(clientScheduleRequest.getClientID())){
+
+        if(booked.contains(idFromToken)){
             throw new RuntimeException("Korisnik vec dodat");
         }
         if(booked.size()>=workout.get().getCapacity()) {
             throw new RuntimeException("Zazueta sva mesta");
         }
 
-        booked.add(clientScheduleRequest.getClientID());
+        booked.add(idFromToken);
 
 
         workout.get().setBooked(booked);
 
         //Povecaj count za jedan
-        messageSender.sendMessage("user-service", clientScheduleRequest.getClientID().toString());
-
+        messageSender.sendMessage("user-service/book", idFromToken);
+        NotifyServiceBookDTO notifyServiceBookDTO = new NotifyServiceBookDTO(idFromToken,workout.get().getRoom().getManagerId(),
+                workout.get().getName(),workout.get().getDate());
+        messageSender.sendMessage("notify-service/book", notifyServiceBookDTO);
 
         return new ResponseEntity<>(workoutService.save(workout.get()), HttpStatus.OK);
     }
 
     @PutMapping(value = "/cancel",produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
-    @CheckSecurity(roles = {UserType.CLIENT})
+    @CheckSecurity(roles = {UserType.CLIENT,UserType.MANAGER,UserType.ADMIN})
     public ResponseEntity<?> scheduleDeleteClient(@RequestHeader("Authorization") String authorization,
-                                                  @RequestBody ClientScheduleRequest clientScheduleRequest){
-        Optional<Workout> workout= (workoutService.findbyID(clientScheduleRequest.getWorkoutID()));
+                                                  @RequestBody ClientScheduleRequest clientScheduleRequest) {
+        Optional<Workout> workout = (workoutService.findbyID(clientScheduleRequest.getWorkoutID()));
 
-        List<Long> booked = workout.get().getBooked();
-        if (booked == null) {
-            booked = new ArrayList<>();
+        String[] token = authorization.split(" ");
+        System.out.println(token[1]);
+        Claims claims = tokenService.parseToken(token[1]);
+        Long idFromToken = claims.get("id", Long.class);
+        UserType userTypeFromToken = UserType.fromString(claims.get("role", String.class));
+        System.out.println(idFromToken);
+        System.out.println(userTypeFromToken);
+
+        if (userTypeFromToken == UserType.CLIENT){
+
+            List<Long> booked = workout.get().getBooked();
+            if (booked == null) {
+                booked = new ArrayList<>();
+            }
+
+            booked.remove(idFromToken);
+
+            workout.get().setBooked(booked);
+
+            messageSender.sendMessage("user-service/cancel", idFromToken);
+
+            return new ResponseEntity<>(workoutService.save(workout.get()), HttpStatus.OK);
         }
+        else{
+            try {
+                List<Long> clients = workoutService.findAllClientsByWorkoutID(workout.get().getId());
 
-        booked.remove(clientScheduleRequest.getClientID());
+                workoutService.delete(workout.get().getId());
 
-        workout.get().setBooked(booked);
+                for(Long id: clients){
+                    messageSender.sendMessage("user-service/cancel", id);
+                    NotifyServiceBookDTO notifyServiceBookDTO = new NotifyServiceBookDTO(id,workout.get().getRoom().getManagerId(),
+                            workout.get().getName(),workout.get().getDate());
+                    messageSender.sendMessage("notify-service/cancelClient", notifyServiceBookDTO);
 
-        return new ResponseEntity<>(workoutService.save(workout.get()), HttpStatus.OK);
+                }
+                NotifyServiceBookDTO notifyServiceBookDTO = new NotifyServiceBookDTO(clients.get(0),workout.get().getRoom().getManagerId(),
+                        workout.get().getName(),workout.get().getDate());
+                messageSender.sendMessage("notify-service/cancel", notifyServiceBookDTO);
+                return new ResponseEntity<>("Workout deleted successfully", HttpStatus.OK);
+            } catch (Exception e) {
+                e.printStackTrace(); // Log the exception or handle it as needed
+                return new ResponseEntity<>("Failed to delete workout", HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+        }
     }
 
     @DeleteMapping("/delete/{id}")
@@ -188,6 +247,45 @@ public class WorkoutController {
     @CheckSecurity(roles = {UserType.ADMIN,UserType.MANAGER, UserType.CLIENT})
     public List<Workout> getByClientId(@RequestHeader("Authorization") String authorization,@PathVariable("id") Long id){
         return this.workoutService.findAllByClientId(id);
+
+    }
+    @Retryable(value = { RuntimeException.class }, maxAttempts = 3, backoff = @Backoff(delay = 1000))
+    @GetMapping(value = "/pay/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @CheckSecurity(roles = { UserType.CLIENT})
+    public int getPrice(@RequestHeader("Authorization") String authorization,@PathVariable("id") Long workoutID){
+
+        Optional<Workout> workout = this.workoutService.findbyID(workoutID);
+
+
+        String[] token = authorization.split(" ");
+        System.out.println(token[1]);
+        Claims claims = tokenService.parseToken(token[1]);
+        Long idFromToken = claims.get("id", Long.class);
+        UserType userTypeFromToken = UserType.fromString(claims.get("role", String.class));
+        System.out.println(idFromToken);
+        System.out.println(userTypeFromToken);
+
+        String trainingServiceUrl = "http://localhost:8084/api/users/get-workout-count/" + idFromToken;
+        //get-workout-count
+
+        ResponseEntity<?> responseEntity = restTemplate.exchange(
+                trainingServiceUrl,
+                HttpMethod.GET,
+                null,
+                String.class
+        );
+        if (responseEntity.getStatusCode().is2xxSuccessful()) {
+            System.out.println("OVO JE BODY:" + responseEntity.getBody().toString());
+            int count = Integer.parseInt(responseEntity.getBody().toString());
+            System.out.println("OVO JE BROJ" +count);
+            if(count >=10)
+                return 0;
+            else
+                return workout.get().getPrice();
+        } else {
+            // Trening servis nije uspeo obrisati korisnika
+            throw new RuntimeException("Error deleting user in training service.");
+        }
 
     }
 

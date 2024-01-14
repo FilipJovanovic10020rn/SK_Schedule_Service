@@ -1,6 +1,7 @@
 package com.example.scheduleservice.messagebroker;
 
 import com.example.scheduleservice.requests.AddMenagerRoomDto;
+import com.example.scheduleservice.requests.NotifyServiceBookDTO;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +33,15 @@ public class MessageSender {
 
         ObjectMapper objectMapper = new ObjectMapper();
         String jsonString = objectMapper.writeValueAsString(addMenagerRoomDto);
+
+
+        jmsTemplate.convertAndSend(destination, jsonString);
+    }
+
+    public void sendMessage(String destination, NotifyServiceBookDTO notifyServiceBookDTO) throws JsonProcessingException {
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        String jsonString = objectMapper.writeValueAsString(notifyServiceBookDTO);
 
 
         jmsTemplate.convertAndSend(destination, jsonString);

@@ -3,7 +3,9 @@ package com.example.scheduleservice.service;
 import com.example.scheduleservice.model.Type;
 import com.example.scheduleservice.model.Workout;
 import com.example.scheduleservice.repositories.WorkoutRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.Date;
 import java.util.List;
@@ -17,6 +19,10 @@ public class WorkoutService {
 
     public WorkoutService(WorkoutRepository workoutRepository) {
         this.workoutRepository = workoutRepository;
+
+    }
+    public List<Long> findAllClientsByWorkoutID(Long id){
+        return this.workoutRepository.findClientIdsByWorkoutId(id);
     }
 
     public Workout save(Workout workout){
