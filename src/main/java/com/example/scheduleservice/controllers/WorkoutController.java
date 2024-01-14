@@ -132,7 +132,7 @@ public class WorkoutController {
     @PutMapping(value = "/cancel",produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
     @CheckSecurity(roles = {UserType.CLIENT,UserType.MANAGER,UserType.ADMIN})
     public ResponseEntity<?> scheduleDeleteClient(@RequestHeader("Authorization") String authorization,
-                                                  @RequestBody ClientScheduleRequest clientScheduleRequest) {
+                                                  @RequestBody ClientScheduleRequest clientScheduleRequest) throws JsonProcessingException {
         Optional<Workout> workout = (workoutService.findbyID(clientScheduleRequest.getWorkoutID()));
 
         String[] token = authorization.split(" ");
@@ -155,7 +155,9 @@ public class WorkoutController {
             workout.get().setBooked(booked);
 
             messageSender.sendMessage("user-service/cancel", idFromToken);
-
+            NotifyServiceBookDTO notifyServiceBookDTO = new NotifyServiceBookDTO(idFromToken,workout.get().getRoom().getManagerId(),
+                    workout.get().getName(),workout.get().getDate());
+            messageSender.sendMessage("notify-service/cancelFromClient", notifyServiceBookDTO);
             return new ResponseEntity<>(workoutService.save(workout.get()), HttpStatus.OK);
         }
         else{
@@ -243,10 +245,19 @@ public class WorkoutController {
         return this.workoutService.findAll();
 
     }
-    @GetMapping(value = "/get/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/getClientWorkouts", produces = MediaType.APPLICATION_JSON_VALUE)
     @CheckSecurity(roles = {UserType.ADMIN,UserType.MANAGER, UserType.CLIENT})
-    public List<Workout> getByClientId(@RequestHeader("Authorization") String authorization,@PathVariable("id") Long id){
-        return this.workoutService.findAllByClientId(id);
+    public List<Workout> getByClientId(@RequestHeader("Authorization") String authorization){
+
+        String[] token = authorization.split(" ");
+        System.out.println(token[1]);
+        Claims claims = tokenService.parseToken(token[1]);
+        Long idFromToken = claims.get("id", Long.class);
+        UserType userTypeFromToken = UserType.fromString(claims.get("role", String.class));
+        System.out.println(idFromToken);
+        System.out.println(userTypeFromToken);
+
+        return this.workoutService.findAllByClientId(idFromToken);
 
     }
     @Retryable(value = { RuntimeException.class }, maxAttempts = 3, backoff = @Backoff(delay = 1000))
